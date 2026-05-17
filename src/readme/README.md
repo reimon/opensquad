@@ -10,6 +10,12 @@ Abra esta pasta no seu IDE e digite:
 /opensquad
 ```
 
+Para habilitar templates de todas as stacks de IDE/LLM suportadas no projeto atual:
+
+```bash
+npx opensquad enable-all-ides
+```
+
 Isso abre o menu principal. De lá você pode criar squads, executá-los e mais.
 
 Você também pode ser direto — descreva o que quer em linguagem natural:

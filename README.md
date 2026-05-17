@@ -56,19 +56,25 @@ Para atualizar uma instalação existente:
 npx opensquad update
 ```
 
+Para habilitar o projeto para todas as stacks de IDE/LLM suportadas (Claude, Cursor, Codex, Gemini CLI, Qwen, etc.) em uma vez:
+
+```bash
+npx opensquad enable-all-ides
+```
+
 ## IDEs Suportadas
 
-| IDE | Status |
-|-----|--------|
-| Claude Code | Disponível |
-| Cursor | Disponível |
+| IDE               | Status     |
+| ----------------- | ---------- |
+| Claude Code       | Disponível |
+| Cursor            | Disponível |
 | VS Code + Copilot | Disponível |
-| Codex (OpenAI) | Disponível |
-| Open Code | Disponível |
-| Antigravity | Disponível |
-| Gemini CLI | Disponível |
-| Qwen Code | Disponível |
-| Trae | Disponível |
+| Codex (OpenAI)    | Disponível |
+| Open Code         | Disponível |
+| Antigravity       | Disponível |
+| Gemini CLI        | Disponível |
+| Qwen Code         | Disponível |
+| Trae              | Disponível |
 
 ## Escritório Virtual
 
@@ -96,7 +102,7 @@ Abra o menu:
 /opensquad
 ```
 
-O **Opensquad** vai te mostrar todas as opções disponíveis. 
+O **Opensquad** vai te mostrar todas as opções disponíveis.
 
 Para criar um novo squad, basta selecionar a opção, e o **Arquiteto** faz algumas perguntas, projeta o squad e configura tudo automaticamente. Você aprova o design antes de qualquer execução.
 
@@ -124,17 +130,17 @@ O squad executa automaticamente, pausando nos checkpoints onde o agente pede sua
 
 ## Comandos
 
-| Comando | O que faz |
-|---------|-----------|
-| `/opensquad` | Abre o menu principal |
-| `/opensquad help` | Mostra todos os comandos |
-| `/opensquad create` | Cria um novo squad |
-| `/opensquad run <nome>` | Executa um squad |
-| `/opensquad list` | Lista seus squads |
-| `/opensquad edit <nome>` | Modifica um squad |
-| `/opensquad skills` | Navega pelas skills instaladas |
-| `/opensquad install <nome>` | Instala uma skill do catálogo |
-| `/opensquad uninstall <nome>` | Remove uma skill instalada |
+| Comando                       | O que faz                      |
+| ----------------------------- | ------------------------------ |
+| `/opensquad`                  | Abre o menu principal          |
+| `/opensquad help`             | Mostra todos os comandos       |
+| `/opensquad create`           | Cria um novo squad             |
+| `/opensquad run <nome>`       | Executa um squad               |
+| `/opensquad list`             | Lista seus squads              |
+| `/opensquad edit <nome>`      | Modifica um squad              |
+| `/opensquad skills`           | Navega pelas skills instaladas |
+| `/opensquad install <nome>`   | Instala uma skill do catálogo  |
+| `/opensquad uninstall <nome>` | Remove uma skill instalada     |
 
 ## Custo de Tokens
 
@@ -210,17 +216,17 @@ npx opensquad update
 
 ## Supported IDEs
 
-| IDE | Status |
-|-----|--------|
-| Claude Code | Available |
-| Cursor | Available |
+| IDE               | Status    |
+| ----------------- | --------- |
+| Claude Code       | Available |
+| Cursor            | Available |
 | VS Code + Copilot | Available |
-| Codex (OpenAI) | Available |
-| Open Code | Available |
-| Antigravity | Available |
-| Gemini CLI | Available |
-| Qwen Code | Available |
-| Trae | Available |
+| Codex (OpenAI)    | Available |
+| Open Code         | Available |
+| Antigravity       | Available |
+| Gemini CLI        | Available |
+| Qwen Code         | Available |
+| Trae              | Available |
 
 ## Virtual Office
 
@@ -269,17 +275,17 @@ The squad runs automatically, pausing at checkpoints where the agent asks for yo
 
 ## Commands
 
-| Command | What it does |
-|---------|-------------|
-| `/opensquad` | Open the main menu |
-| `/opensquad help` | Show all commands |
-| `/opensquad create` | Create a new squad |
-| `/opensquad run <name>` | Run a squad |
-| `/opensquad list` | See all your squads |
-| `/opensquad edit <name>` | Modify a squad |
-| `/opensquad skills` | Browse installed skills |
-| `/opensquad install <name>` | Install a skill from catalog |
-| `/opensquad uninstall <name>` | Remove an installed skill |
+| Command                       | What it does                 |
+| ----------------------------- | ---------------------------- |
+| `/opensquad`                  | Open the main menu           |
+| `/opensquad help`             | Show all commands            |
+| `/opensquad create`           | Create a new squad           |
+| `/opensquad run <name>`       | Run a squad                  |
+| `/opensquad list`             | See all your squads          |
+| `/opensquad edit <name>`      | Modify a squad               |
+| `/opensquad skills`           | Browse installed skills      |
+| `/opensquad install <name>`   | Install a skill from catalog |
+| `/opensquad uninstall <name>` | Remove an installed skill    |
 
 ## Token Cost
 

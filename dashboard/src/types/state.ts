@@ -43,6 +43,10 @@ export interface SquadState {
   };
   agents: Agent[];
   handoff: Handoff | null;
+  checkpointData?: {
+    message: string;
+    reviewFile?: string;
+  };
   startedAt: string | null;
   updatedAt: string;
 }

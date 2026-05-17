@@ -162,8 +162,73 @@ export function squadWatcherPlugin(): Plugin {
         server.config.logger.error(`[squad-watcher] failed to create squads dir: ${err.message}`);
       });
 
-      // REST API fallback — serves snapshot over HTTP for polling clients
+      // REST API fallback and Checkpoint POST
       server.middlewares.use(async (req, res, next) => {
+        if (req.url?.startsWith("/api/checkpoint/") && req.method === "POST") {
+          const squadName = req.url.split("/")[3];
+          if (!squadName) {
+            res.writeHead(400);
+            return res.end("Missing squad name");
+          }
+          
+          let body = "";
+          req.on("data", (chunk) => { body += chunk; });
+          req.on("end", async () => {
+            try {
+              const data = JSON.parse(body);
+              const responsePath = path.join(squadsDir, squadName, "checkpoint_response.json");
+              await fsp.writeFile(responsePath, JSON.stringify(data, null, 2), "utf-8");
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: true }));
+            } catch (err) {
+              res.writeHead(500);
+              res.end("Failed to save response");
+            }
+          });
+          return;
+        }
+
+        if (req.url?.startsWith("/api/squad-settings/") && req.method === "GET") {
+          const squadName = req.url.split("/")[3];
+          if (!squadName) {
+            res.writeHead(400);
+            return res.end("Missing squad name");
+          }
+          const settingsPath = path.join(squadsDir, squadName, "settings.json");
+          try {
+            const raw = await fsp.readFile(settingsPath, "utf-8");
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end(raw);
+          } catch {
+            res.writeHead(200, { "Content-Type": "application/json" });
+            res.end("{}");
+          }
+          return;
+        }
+
+        if (req.url?.startsWith("/api/squad-settings/") && req.method === "POST") {
+          const squadName = req.url.split("/")[3];
+          if (!squadName) {
+            res.writeHead(400);
+            return res.end("Missing squad name");
+          }
+          let body = "";
+          req.on("data", (chunk) => { body += chunk; });
+          req.on("end", async () => {
+            try {
+              const data = JSON.parse(body);
+              const settingsPath = path.join(squadsDir, squadName, "settings.json");
+              await fsp.writeFile(settingsPath, JSON.stringify(data, null, 2), "utf-8");
+              res.writeHead(200, { "Content-Type": "application/json" });
+              res.end(JSON.stringify({ success: true }));
+            } catch (err) {
+              res.writeHead(500);
+              res.end("Failed to save settings");
+            }
+          });
+          return;
+        }
+
         if (req.url !== "/api/snapshot") return next();
         try {
           const snapshot = await buildSnapshot(squadsDir);

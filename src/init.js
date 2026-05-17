@@ -1,77 +1,100 @@
-import { cp, mkdir, readdir, readFile, writeFile, stat } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
-import { createPrompt } from './prompt.js';
-import { loadLocale, t } from './i18n.js';
-import { listAvailable, installSkill } from './skills.js';
-import { logEvent } from './logger.js';
+import {
+  cp,
+  mkdir,
+  readdir,
+  readFile,
+  writeFile,
+  stat,
+} from "node:fs/promises";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
+import { createPrompt } from "./prompt.js";
+import { loadLocale, t } from "./i18n.js";
+import { listAvailable, installSkill } from "./skills.js";
+import { logEvent } from "./logger.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = join(__dirname, '..', 'templates');
+const TEMPLATES_DIR = join(__dirname, "..", "templates");
 
-const PACKAGE_ROOT = join(__dirname, '..');
+const PACKAGE_ROOT = join(__dirname, "..");
 
 const CANONICAL_SOURCES = [
-  { src: join(PACKAGE_ROOT, '_opensquad', 'core'), dest: join('_opensquad', 'core') },
-  { src: join(PACKAGE_ROOT, '_opensquad', 'config'), dest: join('_opensquad', 'config') },
-  { src: join(PACKAGE_ROOT, 'dashboard'), dest: 'dashboard' },
+  {
+    src: join(PACKAGE_ROOT, "_opensquad", "core"),
+    dest: join("_opensquad", "core"),
+  },
+  {
+    src: join(PACKAGE_ROOT, "_opensquad", "config"),
+    dest: join("_opensquad", "config"),
+  },
+  { src: join(PACKAGE_ROOT, "dashboard"), dest: "dashboard" },
 ];
 
-const DASHBOARD_EXCLUDES = ['node_modules', 'tsconfig.tsbuildinfo', 'squads'];
+const DASHBOARD_EXCLUDES = ["node_modules", "tsconfig.tsbuildinfo", "squads"];
 
 const LANGUAGES = [
-  { label: 'Português (Brasil)', value: 'Português (Brasil)' },
-  { label: 'English', value: 'English' },
-  { label: 'Español', value: 'Español' },
+  { label: "Português (Brasil)", value: "Português (Brasil)" },
+  { label: "English", value: "English" },
+  { label: "Español", value: "Español" },
 ];
 
 const IDES = [
-  { label: 'Antigravity', value: 'antigravity', checked: true },
-  { label: 'Claude Code', value: 'claude-code' },
-  { label: 'Codex (OpenAI)', value: 'codex' },
-  { label: 'Cursor', value: 'cursor' },
-  { label: 'Gemini CLI', value: 'gemini-cli' },
-  { label: 'OpenCode', value: 'opencode' },
-  { label: 'Qwen Code', value: 'qwen-code' },
-  { label: 'Trae', value: 'trae' },
-  { label: 'VS Code + Copilot', value: 'vscode-copilot' },
+  { label: "Antigravity", value: "antigravity", checked: true },
+  { label: "Claude Code", value: "claude-code" },
+  { label: "Codex (OpenAI)", value: "codex" },
+  { label: "Cursor", value: "cursor" },
+  { label: "Gemini CLI", value: "gemini-cli" },
+  { label: "OpenCode", value: "opencode" },
+  { label: "Qwen Code", value: "qwen-code" },
+  { label: "Trae", value: "trae" },
+  { label: "VS Code + Copilot", value: "vscode-copilot" },
 ];
 
-export async function init(targetDir, options = {}) {
+function supportedIdeValues() {
+  return IDES.map((ide) => ide.value);
+}
 
+export async function init(targetDir, options = {}) {
   // Check if already initialized
   let isReInit = false;
   try {
-    await stat(join(targetDir, '_opensquad'));
+    await stat(join(targetDir, "_opensquad"));
     isReInit = true;
   } catch {
     // Not initialized yet — continue
   }
 
-  console.log(isReInit ? '\n  🔄 Opensquad — Re-configure\n' : '\n  🟢 Opensquad — Setup\n');
+  console.log(
+    isReInit
+      ? "\n  🔄 Opensquad — Re-configure\n"
+      : "\n  🟢 Opensquad — Setup\n",
+  );
 
   // Guided installation (skip in test mode)
-  let language = options._language || 'English';
-  let ides = options._ides ?? ['claude-code'];
-  let userName = '';
+  let language = options._language || "English";
+  let ides = options._ides ?? ["claude-code"];
+  let userName = "";
 
   if (!options._skipPrompts) {
     const prompt = createPrompt();
 
     try {
       // Language is asked FIRST (in English, before locale is loaded)
-      const langChoice = await prompt.choose('What language do you prefer for outputs?', LANGUAGES);
+      const langChoice = await prompt.choose(
+        "What language do you prefer for outputs?",
+        LANGUAGES,
+      );
       language = langChoice.value;
 
       // Load locale — all messages from here are translated
       await loadLocale(language);
 
-      console.log(`\n  ${t('welcome')}\n`);
+      console.log(`\n  ${t("welcome")}\n`);
 
-      userName = (await prompt.ask(`  ${t('askName')}`)).trim();
+      userName = (await prompt.ask(`  ${t("askName")}`)).trim();
 
-      ides = await prompt.multiChoose(t('chooseIdes'), IDES);
+      ides = await prompt.multiChoose(t("chooseIdes"), IDES);
     } finally {
       prompt.close();
     }
@@ -90,56 +113,96 @@ export async function init(targetDir, options = {}) {
   await writeProjectReadme(targetDir);
 
   // Write user preferences
-  const prefsPath = join(targetDir, '_opensquad', '_memory', 'preferences.md');
+  const prefsPath = join(targetDir, "_opensquad", "_memory", "preferences.md");
   await mkdir(dirname(prefsPath), { recursive: true });
   const prefsContent = `# Opensquad Preferences
 
 - **User Name:** ${userName}
 - **Output Language:** ${language}
-- **IDEs:** ${ides.join(', ')}
+- **IDEs:** ${ides.join(", ")}
 - **Date Format:** YYYY-MM-DD
 `;
-  await writeFile(prefsPath, prefsContent, 'utf-8');
+  await writeFile(prefsPath, prefsContent, "utf-8");
 
-  await logEvent('init', { language, ides: ides.join(',') }, targetDir);
+  await logEvent("init", { language, ides: ides.join(",") }, targetDir);
 
-  console.log(`\n  ${t('success')}\n`);
-  console.log(`  ⚠️  ${t('tokenCostWarning')}\n`);
-  console.log(`  ${t('nextSteps')}`);
+  console.log(`\n  ${t("success")}\n`);
+  console.log(`  ⚠️  ${t("tokenCostWarning")}\n`);
+  console.log(`  ${t("nextSteps")}`);
   for (const ide of ides) {
-    if (ide === 'claude-code') {
-      console.log(`  ${t('step1ClaudeCode')}`);
-      console.log(`  ${t('step2ClaudeCode')}`);
-      console.log(`  ${t('step3ClaudeCode')}\n`);
-    } else if (ide === 'codex') {
-      console.log(`  ${t('step1Codex')}\n`);
-    } else if (ide === 'antigravity') {
-      console.log(`  ${t('step1Antigravity')}\n`);
-    } else if (ide === 'cursor') {
-      console.log(`  ${t('step1Cursor')}\n`);
-    } else if (ide === 'opencode') {
-      console.log(`  ${t('step1Opencode')}\n`);
-    } else if (ide === 'vscode-copilot') {
-      console.log(`  ${t('step1VsCodeCopilot')}`);
-      console.log(`  ${t('step2VsCodeCopilot')}`);
-      console.log(`  ${t('step3VsCodeCopilot')}\n`);
-    } else if (ide === 'gemini-cli') {
-      console.log(`  ${t('step1GeminiCli')}`);
-      console.log(`  ${t('step2GeminiCli')}\n`);
-    } else if (ide === 'qwen-code') {
-      console.log(`  ${t('step1QwenCode')}`);
-      console.log(`  ${t('step2QwenCode')}\n`);
-    } else if (ide === 'trae') {
-      console.log(`  ${t('step1Trae')}`);
-      console.log(`  ${t('step2Trae')}\n`);
+    if (ide === "claude-code") {
+      console.log(`  ${t("step1ClaudeCode")}`);
+      console.log(`  ${t("step2ClaudeCode")}`);
+      console.log(`  ${t("step3ClaudeCode")}\n`);
+    } else if (ide === "codex") {
+      console.log(`  ${t("step1Codex")}\n`);
+    } else if (ide === "antigravity") {
+      console.log(`  ${t("step1Antigravity")}\n`);
+    } else if (ide === "cursor") {
+      console.log(`  ${t("step1Cursor")}\n`);
+    } else if (ide === "opencode") {
+      console.log(`  ${t("step1Opencode")}\n`);
+    } else if (ide === "vscode-copilot") {
+      console.log(`  ${t("step1VsCodeCopilot")}`);
+      console.log(`  ${t("step2VsCodeCopilot")}`);
+      console.log(`  ${t("step3VsCodeCopilot")}\n`);
+    } else if (ide === "gemini-cli") {
+      console.log(`  ${t("step1GeminiCli")}`);
+      console.log(`  ${t("step2GeminiCli")}\n`);
+    } else if (ide === "qwen-code") {
+      console.log(`  ${t("step1QwenCode")}`);
+      console.log(`  ${t("step2QwenCode")}\n`);
+    } else if (ide === "trae") {
+      console.log(`  ${t("step1Trae")}`);
+      console.log(`  ${t("step2Trae")}\n`);
     }
   }
 }
 
+export async function enableAllIdes(targetDir) {
+  await loadSavedLocale(targetDir);
+
+  const allIdes = supportedIdeValues();
+  await copyIdeTemplates(allIdes, targetDir);
+  await updatePreferencesIdes(targetDir, allIdes);
+
+  await logEvent("enable-all-ides", { ides: allIdes.join(",") }, targetDir);
+  console.log(
+    `\n  ✅ Multi-LLM mode enabled (${allIdes.length} IDE templates)\n`,
+  );
+}
+
+async function updatePreferencesIdes(targetDir, ides) {
+  const prefsPath = join(targetDir, "_opensquad", "_memory", "preferences.md");
+
+  let content = "";
+  try {
+    content = await readFile(prefsPath, "utf-8");
+  } catch {
+    await mkdir(dirname(prefsPath), { recursive: true });
+    content = "# Opensquad Preferences\n\n";
+  }
+
+  const idesLine = `- **IDEs:** ${ides.join(", ")}`;
+  if (/^- \*\*IDEs:\*\*.*$/m.test(content)) {
+    content = content.replace(/^- \*\*IDEs:\*\*.*$/m, idesLine);
+  } else {
+    if (!content.endsWith("\n")) content += "\n";
+    content += `${idesLine}\n`;
+  }
+
+  await writeFile(prefsPath, content, "utf-8");
+}
+
 export async function loadSavedLocale(targetDir) {
   try {
-    const prefsPath = join(targetDir, '_opensquad', '_memory', 'preferences.md');
-    const content = await readFile(prefsPath, 'utf-8');
+    const prefsPath = join(
+      targetDir,
+      "_opensquad",
+      "_memory",
+      "preferences.md",
+    );
+    const content = await readFile(prefsPath, "utf-8");
     const match = content.match(/\*\*Output Language:\*\*\s*(.+)/);
     if (match) {
       await loadLocale(match[1].trim());
@@ -148,28 +211,34 @@ export async function loadSavedLocale(targetDir) {
   } catch {
     // No preferences file yet
   }
-  await loadLocale('English');
+  await loadLocale("English");
 }
 
 async function installAllSkills(targetDir) {
   const available = await listAvailable();
   for (const id of available) {
     await installSkill(id, targetDir);
-    console.log(`  ${t('createdFile', { path: `skills/${id}/SKILL.md` })}`);
+    console.log(`  ${t("createdFile", { path: `skills/${id}/SKILL.md` })}`);
   }
 }
 
 async function installDependencies(targetDir) {
   console.log(`\n  Installing dependencies...`);
-  execSync('npm install', { cwd: targetDir, stdio: 'inherit' });
+  execSync("npm install", { cwd: targetDir, stdio: "inherit" });
   console.log(`\n  Installing dashboard dependencies...`);
-  execSync('npm install', { cwd: join(targetDir, 'dashboard'), stdio: 'inherit' });
+  execSync("npm install", {
+    cwd: join(targetDir, "dashboard"),
+    stdio: "inherit",
+  });
   console.log(`\n  Installing Playwright browsers...`);
-  execSync('npx playwright install chromium', { cwd: targetDir, stdio: 'inherit' });
+  execSync("npx playwright install chromium", {
+    cwd: targetDir,
+    stdio: "inherit",
+  });
 }
 
 async function writeProjectReadme(targetDir) {
-  const destPath = join(targetDir, 'README.md');
+  const destPath = join(targetDir, "README.md");
   try {
     await stat(destPath);
     // README already exists — skip to avoid overwriting user content
@@ -177,9 +246,9 @@ async function writeProjectReadme(targetDir) {
   } catch {
     // does not exist — write it
   }
-  const readmePath = join(__dirname, 'readme', 'README.md');
-  const content = await readFile(readmePath, 'utf-8');
-  await writeFile(destPath, content, 'utf-8');
+  const readmePath = join(__dirname, "readme", "README.md");
+  const content = await readFile(readmePath, "utf-8");
+  await writeFile(destPath, content, "utf-8");
 }
 
 async function copyCommonTemplates(targetDir) {
@@ -187,7 +256,7 @@ async function copyCommonTemplates(targetDir) {
 
   for (const entry of entries) {
     // Skip anything inside ide-templates/ — handled by copyIdeTemplates
-    if (entry.replace(/\\/g, '/').includes('/ide-templates/')) continue;
+    if (entry.replace(/\\/g, "/").includes("/ide-templates/")) continue;
 
     const relativePath = entry.slice(TEMPLATES_DIR.length + 1);
     const destPath = join(targetDir, relativePath);
@@ -200,12 +269,12 @@ async function copyCommonTemplates(targetDir) {
       // does not exist — copy it
     }
     await cp(entry, destPath);
-    console.log(`  ${t('createdFile', { path: relativePath })}`);
+    console.log(`  ${t("createdFile", { path: relativePath })}`);
   }
 }
 
 async function copyIdeTemplates(ides, targetDir) {
-  const ideTemplatesDir = join(TEMPLATES_DIR, 'ide-templates');
+  const ideTemplatesDir = join(TEMPLATES_DIR, "ide-templates");
   const writtenPaths = new Set();
 
   for (const ide of ides) {
@@ -220,9 +289,21 @@ async function copyIdeTemplates(ides, targetDir) {
     for (const entry of entries) {
       const relativePath = entry.slice(ideSrcDir.length + 1);
       // settings.json for vscode-copilot is handled by mergeVsCodeSettings — skip here
-      if (ide === 'vscode-copilot' && relativePath.replace(/\\/g, '/') === '.vscode/settings.json') continue;
-      if (ide === 'qwen-code' && relativePath.replace(/\\/g, '/') === '.qwen/settings.json') continue;
-      if (ide === 'gemini-cli' && relativePath.replace(/\\/g, '/') === '.gemini/settings.json') continue;
+      if (
+        ide === "vscode-copilot" &&
+        relativePath.replace(/\\/g, "/") === ".vscode/settings.json"
+      )
+        continue;
+      if (
+        ide === "qwen-code" &&
+        relativePath.replace(/\\/g, "/") === ".qwen/settings.json"
+      )
+        continue;
+      if (
+        ide === "gemini-cli" &&
+        relativePath.replace(/\\/g, "/") === ".gemini/settings.json"
+      )
+        continue;
       if (writtenPaths.has(relativePath)) continue;
       writtenPaths.add(relativePath);
 
@@ -236,24 +317,24 @@ async function copyIdeTemplates(ides, targetDir) {
         // does not exist — copy it
       }
       await cp(entry, destPath);
-      console.log(`  ${t('createdFile', { path: relativePath })}`);
+      console.log(`  ${t("createdFile", { path: relativePath })}`);
     }
   }
 
-  if (ides.includes('vscode-copilot')) {
+  if (ides.includes("vscode-copilot")) {
     await mergeVsCodeSettings(targetDir);
   }
 
-  if (ides.includes('qwen-code')) {
+  if (ides.includes("qwen-code")) {
     await mergeQwenSettings(targetDir);
   }
-  if (ides.includes('gemini-cli')) {
+  if (ides.includes("gemini-cli")) {
     await mergeGeminiSettings(targetDir);
   }
 }
 
 async function mergeVsCodeSettings(targetDir) {
-  const settingsPath = join(targetDir, '.vscode', 'settings.json');
+  const settingsPath = join(targetDir, ".vscode", "settings.json");
 
   let exists = false;
   try {
@@ -264,32 +345,40 @@ async function mergeVsCodeSettings(targetDir) {
   }
 
   if (!exists) {
-    const templateBase = join(TEMPLATES_DIR, 'ide-templates', 'vscode-copilot', '.vscode', 'settings.json');
-    await mkdir(join(targetDir, '.vscode'), { recursive: true });
+    const templateBase = join(
+      TEMPLATES_DIR,
+      "ide-templates",
+      "vscode-copilot",
+      ".vscode",
+      "settings.json",
+    );
+    await mkdir(join(targetDir, ".vscode"), { recursive: true });
     await cp(templateBase, settingsPath);
     return;
   }
 
-  const raw = await readFile(settingsPath, 'utf-8');
+  const raw = await readFile(settingsPath, "utf-8");
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    console.log(`  ⚠️  .vscode/settings.json has invalid JSON — skipping merge. Add manually: "chat.promptFilesLocations": [".github/prompts"]`);
+    console.log(
+      `  ⚠️  .vscode/settings.json has invalid JSON — skipping merge. Add manually: "chat.promptFilesLocations": [".github/prompts"]`,
+    );
     return;
   }
 
-  if (!parsed['chat.promptFilesLocations']) {
-    parsed['chat.promptFilesLocations'] = ['.github/prompts'];
-  } else if (!parsed['chat.promptFilesLocations'].includes('.github/prompts')) {
-    parsed['chat.promptFilesLocations'].push('.github/prompts');
+  if (!parsed["chat.promptFilesLocations"]) {
+    parsed["chat.promptFilesLocations"] = [".github/prompts"];
+  } else if (!parsed["chat.promptFilesLocations"].includes(".github/prompts")) {
+    parsed["chat.promptFilesLocations"].push(".github/prompts");
   }
 
-  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), 'utf-8');
+  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), "utf-8");
 }
 
 async function mergeQwenSettings(targetDir) {
-  const settingsPath = join(targetDir, '.qwen', 'settings.json');
+  const settingsPath = join(targetDir, ".qwen", "settings.json");
 
   let exists = false;
   try {
@@ -300,18 +389,26 @@ async function mergeQwenSettings(targetDir) {
   }
 
   if (!exists) {
-    const templateBase = join(TEMPLATES_DIR, 'ide-templates', 'qwen-code', '.qwen', 'settings.json');
-    await mkdir(join(targetDir, '.qwen'), { recursive: true });
+    const templateBase = join(
+      TEMPLATES_DIR,
+      "ide-templates",
+      "qwen-code",
+      ".qwen",
+      "settings.json",
+    );
+    await mkdir(join(targetDir, ".qwen"), { recursive: true });
     await cp(templateBase, settingsPath);
     return;
   }
 
-  const raw = await readFile(settingsPath, 'utf-8');
+  const raw = await readFile(settingsPath, "utf-8");
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    console.log(`  ⚠️  .qwen/settings.json has invalid JSON — skipping merge. Add manually: "mcpServers": { "playwright": { ... } }`);
+    console.log(
+      `  ⚠️  .qwen/settings.json has invalid JSON — skipping merge. Add manually: "mcpServers": { "playwright": { ... } }`,
+    );
     return;
   }
 
@@ -320,16 +417,20 @@ async function mergeQwenSettings(targetDir) {
   }
   if (!parsed.mcpServers.playwright) {
     parsed.mcpServers.playwright = {
-      command: 'npx',
-      args: ['@playwright/mcp@latest', '--config', '_opensquad/config/playwright.config.json'],
+      command: "npx",
+      args: [
+        "@playwright/mcp@latest",
+        "--config",
+        "_opensquad/config/playwright.config.json",
+      ],
     };
   }
 
-  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), 'utf-8');
+  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), "utf-8");
 }
 
 async function mergeGeminiSettings(targetDir) {
-  const settingsPath = join(targetDir, '.gemini', 'settings.json');
+  const settingsPath = join(targetDir, ".gemini", "settings.json");
 
   let exists = false;
   try {
@@ -340,18 +441,26 @@ async function mergeGeminiSettings(targetDir) {
   }
 
   if (!exists) {
-    const templateBase = join(TEMPLATES_DIR, 'ide-templates', 'gemini-cli', '.gemini', 'settings.json');
-    await mkdir(join(targetDir, '.gemini'), { recursive: true });
+    const templateBase = join(
+      TEMPLATES_DIR,
+      "ide-templates",
+      "gemini-cli",
+      ".gemini",
+      "settings.json",
+    );
+    await mkdir(join(targetDir, ".gemini"), { recursive: true });
     await cp(templateBase, settingsPath);
     return;
   }
 
-  const raw = await readFile(settingsPath, 'utf-8');
+  const raw = await readFile(settingsPath, "utf-8");
   let parsed;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    console.log(`  ⚠️  .gemini/settings.json has invalid JSON — skipping merge. Add manually: "mcpServers": { "playwright": { ... } }`);
+    console.log(
+      `  ⚠️  .gemini/settings.json has invalid JSON — skipping merge. Add manually: "mcpServers": { "playwright": { ... } }`,
+    );
     return;
   }
 
@@ -360,12 +469,16 @@ async function mergeGeminiSettings(targetDir) {
   }
   if (!parsed.mcpServers.playwright) {
     parsed.mcpServers.playwright = {
-      command: 'npx',
-      args: ['@playwright/mcp@latest', '--config', '_opensquad/config/playwright.config.json'],
+      command: "npx",
+      args: [
+        "@playwright/mcp@latest",
+        "--config",
+        "_opensquad/config/playwright.config.json",
+      ],
     };
   }
 
-  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), 'utf-8');
+  await writeFile(settingsPath, JSON.stringify(parsed, null, 2), "utf-8");
 }
 
 export async function getTemplateEntries(dir) {
@@ -375,7 +488,7 @@ export async function getTemplateEntries(dir) {
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      results.push(...await getTemplateEntries(fullPath));
+      results.push(...(await getTemplateEntries(fullPath)));
     } else {
       results.push(fullPath);
     }
@@ -384,11 +497,14 @@ export async function getTemplateEntries(dir) {
   return results;
 }
 
-export async function copyCanonicalSources(targetDir, { overwrite = false, backupFn = null, protectedFn = null } = {}) {
+export async function copyCanonicalSources(
+  targetDir,
+  { overwrite = false, backupFn = null, protectedFn = null } = {},
+) {
   let count = 0;
 
   for (const { src, dest } of CANONICAL_SOURCES) {
-    const isDashboard = dest === 'dashboard';
+    const isDashboard = dest === "dashboard";
     let entries;
     try {
       entries = await getTemplateEntries(src);
@@ -398,15 +514,20 @@ export async function copyCanonicalSources(targetDir, { overwrite = false, backu
 
     for (const entry of entries) {
       const relativeToSrc = entry.slice(src.length + 1);
-      const normalizedRel = relativeToSrc.replace(/\\/g, '/');
+      const normalizedRel = relativeToSrc.replace(/\\/g, "/");
 
       // Skip dashboard-local artifacts
-      if (isDashboard && DASHBOARD_EXCLUDES.some(ex => normalizedRel === ex || normalizedRel.startsWith(ex + '/'))) {
+      if (
+        isDashboard &&
+        DASHBOARD_EXCLUDES.some(
+          (ex) => normalizedRel === ex || normalizedRel.startsWith(ex + "/"),
+        )
+      ) {
         continue;
       }
 
       const relativePath = join(dest, relativeToSrc);
-      const normalizedPath = relativePath.replace(/\\/g, '/');
+      const normalizedPath = relativePath.replace(/\\/g, "/");
 
       // Skip protected paths (update mode)
       if (protectedFn && protectedFn(normalizedPath)) continue;
@@ -423,15 +544,17 @@ export async function copyCanonicalSources(targetDir, { overwrite = false, backu
           // does not exist — copy it
         }
         await cp(entry, destPath);
-        console.log(`  ${t('createdFile', { path: normalizedPath })}`);
+        console.log(`  ${t("createdFile", { path: normalizedPath })}`);
       } else {
         // Update mode: backup then overwrite
         const backed = backupFn ? await backupFn(destPath) : false;
         await cp(entry, destPath);
         if (backed) {
-          console.log(`  ${t('updatedFile', { path: normalizedPath })} (backup: ${normalizedPath}.bak)`);
+          console.log(
+            `  ${t("updatedFile", { path: normalizedPath })} (backup: ${normalizedPath}.bak)`,
+          );
         } else {
-          console.log(`  ${t('updatedFile', { path: normalizedPath })}`);
+          console.log(`  ${t("updatedFile", { path: normalizedPath })}`);
         }
       }
       count++;

@@ -5,7 +5,7 @@ import { formatElapsed } from "@/lib/formatTime";
 export function StatusBar() {
   const selectedSquad = useSquadStore((s) => s.selectedSquad);
   const state = useSquadStore((s) =>
-    s.selectedSquad ? s.activeStates.get(s.selectedSquad) : undefined
+    s.selectedSquad ? s.activeStates.get(s.selectedSquad) : undefined,
   );
   const isConnected = useSquadStore((s) => s.isConnected);
 
@@ -27,8 +27,8 @@ export function StatusBar() {
 
   if (!selectedSquad || !state) {
     return (
-      <footer style={footerStyle}>
-        <span style={{ color: "var(--text-secondary)" }}>
+      <footer className="status-bar">
+        <span className="status-bar-empty">
           Select an active squad to monitor
         </span>
         <ConnectionDot connected={isConnected} />
@@ -37,8 +37,8 @@ export function StatusBar() {
   }
 
   return (
-    <footer style={footerStyle}>
-      <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 0 }}>
+    <footer className="status-bar">
+      <div className="status-bar-main">
         <span>
           Step {state.step.current}/{state.step.total}
           {state.step.label ? ` — ${state.step.label}` : ""}
@@ -50,14 +50,7 @@ export function StatusBar() {
         )}
         {state.handoff && (
           <span
-            style={{
-              flex: 1,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-              color: "var(--text-secondary)",
-              fontSize: 12,
-            }}
+            className="status-bar-handoff"
             title={`${state.handoff.from} → ${state.handoff.to}: ${state.handoff.message}`}
           >
             {state.handoff.from} → {state.handoff.to}: {state.handoff.message}
@@ -73,25 +66,7 @@ function ConnectionDot({ connected }: { connected: boolean }) {
   return (
     <span
       title={connected ? "Connected" : "Disconnected"}
-      style={{
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        backgroundColor: connected ? "var(--accent-green)" : "var(--accent-red)",
-        flexShrink: 0,
-      }}
+      className={`connection-dot ${connected ? "connected" : "disconnected"}`}
     />
   );
 }
-
-const footerStyle: React.CSSProperties = {
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  padding: "8px 16px",
-  borderTop: "1px solid var(--border)",
-  background: "var(--bg-sidebar)",
-  fontSize: 13,
-  height: 40,
-  minHeight: 40,
-};

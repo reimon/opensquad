@@ -13,3 +13,14 @@ test-results/
 temp/squads/
 .claude/settings.local.json
 dashboards/test-results/
+
+.agent/
+.agents/
+.cursor/
+.cursorignore
+.gemini/
+.github/
+.opencode/
+.qwen/
+.trae/
+.vscode/

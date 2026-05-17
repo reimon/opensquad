@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import Phaser from 'phaser';
-import { OfficeScene } from './OfficeScene';
-import { useSquadStore } from '@/store/useSquadStore';
+import { useEffect, useRef } from "react";
+import Phaser from "phaser";
+import { OfficeScene } from "./OfficeScene";
+import { useSquadStore } from "@/store/useSquadStore";
 
 export function PhaserGame() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -20,10 +20,10 @@ export function PhaserGame() {
       parent: container,
       width: w,
       height: h,
-      pixelArt: false,          // disabled globally so text renders smooth
-      antialias: false,          // keep pixel art look for sprites
-      roundPixels: true,         // snap sprites to whole pixels
-      backgroundColor: '#1a1420',
+      pixelArt: false, // disabled globally so text renders smooth
+      antialias: false, // keep pixel art look for sprites
+      roundPixels: true, // snap sprites to whole pixels
+      backgroundColor: "#1a1420",
       scene: [OfficeScene],
       scale: {
         mode: Phaser.Scale.NONE,
@@ -55,15 +55,15 @@ export function PhaserGame() {
     return useSquadStore.subscribe((state) => {
       const game = gameRef.current;
       if (!game) return;
-      const scene = game.scene.getScene('OfficeScene') as OfficeScene | null;
+      const scene = game.scene.getScene("OfficeScene") as OfficeScene | null;
       if (!scene || !scene.scene.isActive()) return;
 
       const selectedSquad = state.selectedSquad;
       const squadState = selectedSquad
-        ? state.activeStates.get(selectedSquad) ?? null
+        ? (state.activeStates.get(selectedSquad) ?? null)
         : null;
 
-      scene.events.emit('stateUpdate', squadState);
+      scene.events.emit("stateUpdate", squadState);
     });
   }, []);
 
@@ -71,9 +71,10 @@ export function PhaserGame() {
     <div
       ref={containerRef}
       style={{
-        flex: 1,
-        overflow: 'hidden',
-        imageRendering: 'auto',
+        width: "100%",
+        height: "100%",
+        overflow: "hidden",
+        imageRendering: "auto",
       }}
     />
   );

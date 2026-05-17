@@ -305,22 +305,23 @@ Apply this transformation consistently for every write in this step.
 - Proceed to Post-Step Output Validation (below) before advancing.
 
 #### If `type: checkpoint`
-- Present the checkpoint message to the user
-- If the checkpoint requires a choice (numbered list), present options as a numbered list
-- **Always include the file path** of any generated content the user needs to review. Example: "Review the content at `squads/{name}/output/{run_id}/v1/content.md` and let me know if it looks good."
-- Wait for user input before proceeding
-- Save the user's choice/response for the next step
-- **If the step frontmatter contains `outputFile`**: after collecting the user's full response,
-  apply the Output Path Transformation **Step 1 only** (run_id injection — skip Step 2, version folder) to the `outputFile` path, then write the response to the transformed path using the Write tool before moving to the next step. Checkpoint files are user input captures, not versioned output — Step 2 does not apply here, regardless of the general "every write" rule in the Output Path Transformation section above.
-  Use this format:
+- **Check Auto-Bypass**: First, read the step file completely. If the step specifies an automatic approval condition (e.g., checking a setting in a JSON file) and that condition is met, do NOT push to the dashboard. Instead, generate the requested response directly, write it to `outputFile` (applying Output Path Transformation Step 1), and proceed to the next step immediately.
+- **Dashboard Checkpoint UI (MANDATORY)**: If there is no bypass condition or the condition is not met, you must push the checkpoint to the dashboard so the user can interact there. Do not ask for the response in the chat directly.
+- **Update state.json**: Write `squads/{name}/state.json` with `"status": "checkpoint"` and include a `"checkpointData"` object containing the checkpoint instructions/questions. For example:
+  ```json
+  "checkpointData": {
+    "message": "{the instructions or numbered choices}",
+    "reviewFile": "{transformed output path of content to review, if any}"
+  }
   ```
-  # Research Focus
-
-  **Topic:** {user's typed topic}
-  **Time Range:** {selected time range label, e.g., "Últimos 7 dias"}
-  **Date:** {today's date in YYYY-MM-DD format}
-  ```
-  This file is the `inputFile` for the researcher step that follows.
+  *(Preserve the rest of the existing state.json fields like `squad`, `step`, `agents`, `startedAt`, `updatedAt`).*
+- **Inform user in Chat**: Say: "🚦 Checkpoint reached. Please go to the dashboard to review and submit your response."
+- **Wait for dashboard response**: The user will submit their response via the dashboard, which will write it to `squads/{name}/checkpoint_response.json` (containing `{ "response": "..." }`).
+  - You must PAUSE and wait for the user to type "done" or something similar in the chat.
+  - When they do, verify `squads/{name}/checkpoint_response.json` exists and read it using the Read file tool.
+- **After submission**: Delete `squads/{name}/checkpoint_response.json`.
+- **If the step frontmatter contains `outputFile`**: after collecting the response, apply the Output Path Transformation **Step 1 only** (run_id injection — skip Step 2, version folder) to the `outputFile` path, then write the response string (extracted from the json file) to the transformed path using the Write tool before moving to the next step.
+  This file is the `inputFile` for the step that follows.
 
 ### Post-Step Output Validation
 

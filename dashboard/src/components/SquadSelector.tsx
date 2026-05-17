@@ -16,35 +16,17 @@ export function SquadSelector() {
   });
 
   return (
-    <aside
-      style={{
-        width: 240,
-        minWidth: 240,
-        height: "100%",
-        background: "var(--bg-sidebar)",
-        borderRight: "1px solid var(--border)",
-        display: "flex",
-        flexDirection: "column",
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "16px 12px 8px",
-          fontSize: 11,
-          fontWeight: 600,
-          textTransform: "uppercase",
-          letterSpacing: 1,
-          color: "var(--text-secondary)",
-        }}
-      >
-        Squads
+    <aside className="dashboard-sidebar">
+      <div className="sidebar-header">
+        <h2>Squads</h2>
+        <p>
+          Active runs are surfaced first. Select one to sync the office view and
+          status bar.
+        </p>
       </div>
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      <div className="sidebar-body">
         {squadList.length === 0 && (
-          <div style={{ padding: "16px 12px", color: "var(--text-secondary)", fontSize: 12 }}>
-            No squads found
-          </div>
+          <div className="sidebar-empty">No squads found</div>
         )}
         {squadList.map((squad) => (
           <SquadCard
