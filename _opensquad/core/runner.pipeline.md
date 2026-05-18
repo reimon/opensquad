@@ -305,7 +305,15 @@ Apply this transformation consistently for every write in this step.
 - Proceed to Post-Step Output Validation (below) before advancing.
 
 #### If `type: checkpoint`
-- **Check Auto-Bypass**: First, read the step file completely. If the step specifies an automatic approval condition (e.g., checking a setting in a JSON file) and that condition is met, do NOT push to the dashboard. Instead, generate the requested response directly, write it to `outputFile` (applying Output Path Transformation Step 1), and proceed to the next step immediately.
+- **Autonomous Mode Check**: First, check if `squads/{name}/settings.json` exists and read it using the Read file tool.
+  - If the file is missing, unreadable, or contains malformed JSON → treat as `autonomousMode: false` (fail-safe to supervised flow) and continue to the next bullet.
+  - If the file contains `"autonomousMode": true`:
+    - Log an announcement: `🤖 Autonomous Mode active. Bypassing manual approval checkpoint.`
+    - The chosen target is read from `"publishProfile"` (e.g. `"instagram"`, `"linkedin"`, `"twitter"`, or `"draft"`). If `publishProfile` is missing, default to `"draft"`.
+    - Automatically generate an approval response. E.g.: `Approved autonomously. Ready for publishing to: {publishProfile}.`
+    - If the step frontmatter contains `outputFile`: apply Output Path Transformation **Step 1 only** (run_id injection) to the `outputFile` path, write this auto-generated response to that path, and proceed immediately to the next pipeline step.
+    - Do NOT pause or write `status: checkpoint` to `state.json`. Simply proceed.
+- **Check Auto-Bypass**: If Autonomous Mode is not enabled, read the step file completely. If the step specifies an automatic approval condition (e.g., checking a setting in a JSON file) and that condition is met, do NOT push to the dashboard. Instead, generate the requested response directly, write it to `outputFile` (applying Output Path Transformation Step 1), and proceed to the next step immediately.
 - **Dashboard Checkpoint UI (MANDATORY)**: If there is no bypass condition or the condition is not met, you must push the checkpoint to the dashboard so the user can interact there. Do not ask for the response in the chat directly.
 - **Update state.json**: Write `squads/{name}/state.json` with `"status": "checkpoint"` and include a `"checkpointData"` object containing the checkpoint instructions/questions. For example:
   ```json

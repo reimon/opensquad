@@ -162,15 +162,41 @@ export function squadWatcherPlugin(): Plugin {
         server.config.logger.error(`[squad-watcher] failed to create squads dir: ${err.message}`);
       });
 
+      const CONTENT_TYPES: Record<string, string> = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".gif": "image/gif",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".json": "application/json; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".html": "text/html; charset=utf-8",
+        ".txt": "text/plain; charset=utf-8",
+        ".yaml": "text/yaml; charset=utf-8",
+        ".yml": "text/yaml; charset=utf-8",
+      };
+
+      function getSquadNameFromUrl(reqUrl: string, host: string | undefined): string | undefined {
+        const urlObj = new URL(reqUrl, `http://${host ?? "localhost"}`);
+        return urlObj.pathname.split("/")[3] || undefined;
+      }
+
+      function isInsideSquad(resolvedPath: string, squadName: string): boolean {
+        const root = path.resolve(squadsDir, squadName);
+        const rootWithSep = root + path.sep;
+        return resolvedPath === root || resolvedPath.startsWith(rootWithSep);
+      }
+
       // REST API fallback and Checkpoint POST
       server.middlewares.use(async (req, res, next) => {
         if (req.url?.startsWith("/api/checkpoint/") && req.method === "POST") {
-          const squadName = req.url.split("/")[3];
+          const squadName = getSquadNameFromUrl(req.url, req.headers.host);
           if (!squadName) {
             res.writeHead(400);
             return res.end("Missing squad name");
           }
-          
+
           let body = "";
           req.on("data", (chunk) => { body += chunk; });
           req.on("end", async () => {
@@ -181,6 +207,7 @@ export function squadWatcherPlugin(): Plugin {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ success: true }));
             } catch (err) {
+              server.config.logger.error(`[squad-watcher] failed to save checkpoint response for ${squadName}: ${(err as Error).message}`);
               res.writeHead(500);
               res.end("Failed to save response");
             }
@@ -188,8 +215,47 @@ export function squadWatcherPlugin(): Plugin {
           return;
         }
 
+        if (req.url?.startsWith("/api/squad-file/") && req.method === "GET") {
+          const urlObj = new URL(req.url, `http://${req.headers.host ?? "localhost"}`);
+          const squadName = urlObj.pathname.split("/")[3];
+          const relativePath = urlObj.searchParams.get("path");
+          if (!squadName || !relativePath) {
+            res.writeHead(400);
+            return res.end("Missing squad name or file path");
+          }
+
+          const resolvedPath = path.resolve(squadsDir, squadName, relativePath);
+          // Sandbox check — resolvedPath must be inside squads/{squadName}/ (with trailing separator)
+          if (!isInsideSquad(resolvedPath, squadName)) {
+            res.writeHead(403);
+            return res.end("Forbidden: Directory traversal attempt");
+          }
+
+          try {
+            const stats = await fsp.stat(resolvedPath);
+            if (!stats.isFile()) {
+              res.writeHead(400);
+              return res.end("Requested path is not a file");
+            }
+
+            const ext = path.extname(resolvedPath).toLowerCase();
+            const contentType = CONTENT_TYPES[ext] ?? "text/plain; charset=utf-8";
+
+            const data = await fsp.readFile(resolvedPath);
+            res.writeHead(200, {
+              "Content-Type": contentType,
+              "Content-Length": data.length,
+            });
+            res.end(data);
+          } catch (err) {
+            res.writeHead(404);
+            res.end("File not found");
+          }
+          return;
+        }
+
         if (req.url?.startsWith("/api/squad-settings/") && req.method === "GET") {
-          const squadName = req.url.split("/")[3];
+          const squadName = getSquadNameFromUrl(req.url, req.headers.host);
           if (!squadName) {
             res.writeHead(400);
             return res.end("Missing squad name");
@@ -207,7 +273,7 @@ export function squadWatcherPlugin(): Plugin {
         }
 
         if (req.url?.startsWith("/api/squad-settings/") && req.method === "POST") {
-          const squadName = req.url.split("/")[3];
+          const squadName = getSquadNameFromUrl(req.url, req.headers.host);
           if (!squadName) {
             res.writeHead(400);
             return res.end("Missing squad name");
@@ -222,6 +288,7 @@ export function squadWatcherPlugin(): Plugin {
               res.writeHead(200, { "Content-Type": "application/json" });
               res.end(JSON.stringify({ success: true }));
             } catch (err) {
+              server.config.logger.error(`[squad-watcher] failed to save settings for ${squadName}: ${(err as Error).message}`);
               res.writeHead(500);
               res.end("Failed to save settings");
             }

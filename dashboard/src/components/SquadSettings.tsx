@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useSquadStore } from "@/store/useSquadStore";
 
+interface SquadConfig {
+  autonomousMode?: boolean;
+  publishProfile?: string;
+}
+
 export function SquadSettings() {
   const selectedSquad = useSquadStore((s) => s.selectedSquad);
-  const [settings, setSettings] = useState<{ auto_publish_instagram?: boolean } | null>(null);
+  const [settings, setSettings] = useState<SquadConfig | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -17,9 +22,9 @@ export function SquadSettings() {
 
   if (!selectedSquad) return null;
 
-  const toggleAutoPublish = async () => {
+  const updateSetting = async (updatedFields: Partial<SquadConfig>) => {
     if (!settings) return;
-    const newSettings = { ...settings, auto_publish_instagram: !settings.auto_publish_instagram };
+    const newSettings = { ...settings, ...updatedFields };
     setSettings(newSettings);
     setSaving(true);
     try {
@@ -35,6 +40,16 @@ export function SquadSettings() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const toggleAutonomous = () => {
+    if (!settings) return;
+    updateSetting({ autonomousMode: !settings.autonomousMode });
+  };
+
+  const handleProfileChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    if (!settings) return;
+    updateSetting({ publishProfile: e.target.value });
   };
 
   return (
@@ -70,25 +85,55 @@ export function SquadSettings() {
             border: "1px solid var(--border)",
             borderRadius: "6px",
             padding: "16px",
-            width: "280px",
+            width: "300px",
             boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
             zIndex: 100,
           }}
         >
           <h4 style={{ margin: "0 0 12px 0", color: "var(--text)", fontSize: "14px" }}>Squad Configuration</h4>
           
-          <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "13px" }}>
-            <input 
-              type="checkbox" 
-              checked={!!settings.auto_publish_instagram}
-              onChange={toggleAutoPublish}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "13px", fontWeight: "bold" }}>
+              <input 
+                type="checkbox" 
+                checked={!!settings.autonomousMode}
+                onChange={toggleAutonomous}
+                disabled={saving}
+              />
+              🤖 Autonomous Mode
+            </label>
+            <p style={{ margin: "4px 0 0 24px", fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              Agents work autonomously without waiting for manual checkpoint approvals.
+            </p>
+          </div>
+
+          <div style={{ marginBottom: "8px" }}>
+            <label style={{ display: "block", color: "var(--text-secondary)", fontSize: "12px", marginBottom: "6px" }}>
+              📢 Publish Destination Profile
+            </label>
+            <select
+              value={settings.publishProfile || "draft"}
+              onChange={handleProfileChange}
               disabled={saving}
-            />
-            Auto-Publish to Instagram
-          </label>
-          <p style={{ margin: "4px 0 0 24px", fontSize: "11px", color: "var(--text-muted)" }}>
-            Automatically approves and publishes content to Instagram, skipping the manual checkpoint.
-          </p>
+              style={{
+                width: "100%",
+                padding: "6px",
+                borderRadius: "4px",
+                border: "1px solid var(--border)",
+                background: "var(--surface-sunken)",
+                color: "var(--text)",
+                fontSize: "12px"
+              }}
+            >
+              <option value="draft">Draft (Do not Auto-Publish)</option>
+              <option value="instagram">Instagram (@mycompany)</option>
+              <option value="linkedin">LinkedIn (Company Page)</option>
+              <option value="twitter">Twitter/X (@company)</option>
+            </select>
+            <p style={{ margin: "4px 0 0 0", fontSize: "11px", color: "var(--text-muted)", lineHeight: "1.3" }}>
+              Choose which social profile the autonomous agent should target for publishing.
+            </p>
+          </div>
         </div>
       )}
     </div>
